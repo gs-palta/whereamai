@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Publisher · Where Am aI</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+<a href="index.html"><img src="logo.png" alt="Where Am aI logo"></a>
+<a class="brand" href="index.html">Where Am aI</a>
+<nav><a href="index.html#episodes">Episodes</a><a href="index.html#how">How it works</a><a href="index.html#send">Send a spot</a></nav>
+</header>
+<h1>Where Am aI Publisher</h1>
+<p>The publisher posts finished Where Am aI episodes to the series' own TikTok account through the TikTok Content Posting API. It is used only by the channel operator.</p>
+<ol class="steps">
+<li>Connect the TikTok account below and approve the requested permissions (basic profile info, video upload and publish).</li>
+<li>The callback page shows an authorization code, which the operator's local publishing tool exchanges for an access token.</li>
+<li>The tool uploads each finished episode with its caption and privacy setting, then confirms the post status.</li>
+</ol>
+<p style="margin:2em 0"><a class="btn" href="https://www.tiktok.com/v2/auth/authorize/?client_key=awoglmof0kikg7jz&amp;scope=user.info.basic,video.publish,video.upload&amp;response_type=code&amp;redirect_uri=https://gs-palta.github.io/whereamai/callback.html&amp;state=asat123">Connect TikTok Account</a></p>
+<footer>
+<a href="index.html">Home</a> · <a href="terms.html">Terms of Service</a> · <a href="privacy.html">Privacy Policy</a>
+</footer>
+</body>
+</html>
