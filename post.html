@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Post to TikTok · Where Am aI</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+<style>
+form{display:grid;gap:1em;margin:1.5em 0}
+label{display:block;font-weight:600;margin-bottom:.3em}
+select,textarea,input[type=text]{width:100%;box-sizing:border-box;padding:.6em;font:inherit;border:1.5px solid #1a1a1a;border-radius:6px;background:#fff}
+textarea{min-height:7em}
+.opt label{display:flex;gap:.5em;align-items:center;font-weight:400;margin:.2em 0}
+.creator{display:flex;align-items:center;gap:.75em;margin:1.5em 0}
+.creator img{width:48px;height:48px;border-radius:50%}
+button.btn{border:0;font:inherit;font-weight:600;cursor:pointer}
+button.btn:disabled{opacity:.4;cursor:default}
+#status{font-weight:600;margin-top:1em}
+.note{font-size:.9em;color:#555}
+</style>
+</head>
+<body>
+<header>
+<a href="index.html"><img src="logo.png" alt="Where Am aI logo"></a>
+<a class="brand" href="index.html">Where Am aI</a>
+<nav><a href="index.html#episodes">Episodes</a><a href="index.html#how">How it works</a><a href="index.html#send">Send a spot</a></nav>
+</header>
+<h1>Post to TikTok</h1>
+<p>Operator page. It publishes a finished episode to the series' own TikTok account through the Content Posting API, using a publishing helper that runs on the operator's computer.</p>
+
+<div class="creator" id="creator" hidden>
+<img id="avatar" alt="">
+<div>Posting to <strong id="nick"></strong> <span class="note">@<span id="uname"></span></span></div>
+</div>
+<p id="offline" class="note">Connecting to the local publishing helper&hellip;</p>
+
+<form id="form" hidden>
+<div>
+<label for="clip">Episode</label>
+<select id="clip" required></select>
+</div>
+<div>
+<label for="title">Caption</label>
+<textarea id="title" maxlength="2200" required></textarea>
+</div>
+<div>
+<label for="privacy">Who can view this video</label>
+<select id="privacy" required><option value="" selected disabled>Select&hellip;</option></select>
+</div>
+<div class="opt">
+<label>Allow users to</label>
+<label><input type="checkbox" id="comment"> Comment</label>
+<label><input type="checkbox" id="duet"> Duet</label>
+<label><input type="checkbox" id="stitch"> Stitch</label>
+</div>
+<p class="note">By posting, you agree to TikTok's <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener">Music Usage Confirmation</a>.</p>
+<div class="opt"><label><input type="checkbox" id="consent"> I confirm I want to publish this video to the account above.</label></div>
+<div><button class="btn" id="post" type="submit" disabled>Post to TikTok</button></div>
+</form>
+<div id="status" role="status"></div>
+
+<footer>
+<a href="index.html">Home</a> · <a href="terms.html">Terms of Service</a> · <a href="privacy.html">Privacy Policy</a>
+</footer>
+
+<script>
+const H = "http://127.0.0.1:8765";
+const $ = id => document.getElementById(id);
+let clips = [];
+const setStatus = t => { $("status").textContent = t; };
+
+async function init() {
+  try {
+    const [c, v] = await Promise.all([fetch(H + "/creator").then(r => r.json()), fetch(H + "/clips").then(r => r.json())]);
+    const d = c.data;
+    if (!d || !d.creator_username) { $("offline").textContent = "TikTok account not connected: " + JSON.stringify(c.error || c); return; }
+    $("avatar").src = d.creator_avatar_url;
+    $("nick").textContent = d.creator_nickname;
+    $("uname").textContent = d.creator_username;
+    $("creator").hidden = false;
+    for (const o of d.privacy_level_options) {
+      const e = document.createElement("option");
+      e.value = o;
+      e.textContent = ({PUBLIC_TO_EVERYONE: "Everyone", MUTUAL_FOLLOW_FRIENDS: "Friends", SELF_ONLY: "Only me"})[o] || o;
+      $("privacy").appendChild(e);
+    }
+    $("comment").disabled = d.comment_disabled;
+    $("duet").disabled = d.duet_disabled;
+    $("stitch").disabled = d.stitch_disabled;
+    clips = v;
+    for (const k of clips) {
+      const e = document.createElement("option");
+      e.value = k.clip;
+      e.textContent = k.clip + " (" + (k.size / 1e6).toFixed(1) + " MB)";
+      $("clip").appendChild(e);
+    }
+    pick();
+    $("offline").hidden = true;
+    $("form").hidden = false;
+  } catch (e) {
+    $("offline").textContent = "Local publishing helper is not running.";
+  }
+}
+
+function pick() {
+  const k = clips.find(x => x.clip === $("clip").value);
+  $("title").value = k ? k.caption : "";
+}
+
+function ready() {
+  $("post").disabled = !($("privacy").value && $("consent").checked && $("title").value.trim());
+}
+
+async function poll(id) {
+  for (let i = 0; i < 60; i++) {
+    const r = await fetch(H + "/status?publish_id=" + encodeURIComponent(id)).then(r => r.json());
+    const s = r.data && r.data.status;
+    setStatus("Status: " + s);
+    if (s === "PUBLISH_COMPLETE") { setStatus("Posted to TikTok. Publish ID " + id); return; }
+    if (s === "FAILED") { setStatus("Failed: " + JSON.stringify(r.data)); return; }
+    await new Promise(r => setTimeout(r, 3000));
+  }
+  setStatus("Timed out waiting for TikTok.");
+}
+
+$("clip").addEventListener("change", pick);
+for (const id of ["privacy", "consent", "title"]) $(id).addEventListener("input", ready);
+$("form").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("post").disabled = true;
+  setStatus("Uploading to TikTok\u2026");
+  const r = await fetch(H + "/post", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      clip: $("clip").value,
+      title: $("title").value,
+      privacy_level: $("privacy").value,
+      disable_comment: !$("comment").checked,
+      disable_duet: !$("duet").checked,
+      disable_stitch: !$("stitch").checked,
+      consent: $("consent").checked
+    })
+  }).then(r => r.json());
+  if (!r.publish_id) { setStatus("Failed: " + JSON.stringify(r.error || r)); $("post").disabled = false; return; }
+  setStatus("Uploaded. Waiting for TikTok\u2026");
+  poll(r.publish_id);
+});
+init();
+</script>
+</body>
+</html>
